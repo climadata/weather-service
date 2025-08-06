@@ -520,5 +520,3 @@ describe('weatherService - casos edge', () => {
     expect(result.temperatura).toBe('invalid-temp');
   });
 });
-
-

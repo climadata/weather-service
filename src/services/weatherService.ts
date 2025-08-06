@@ -71,7 +71,7 @@ export async function fetchWeeklyForecast(city: string) {
 
     const data = response.data;
     
-    //  previsões por dia
+    // Agrupar previsões por dia
     const dailyForecasts = groupForecastsByDay(data.list);
     
     return {
@@ -123,7 +123,7 @@ function groupForecastsByDay(forecastList: any[]) {
       };
     }
     
-        if (dayKey) {
+    if (dayKey) {
       dailyForecasts[dayKey].previsoes.push({
         hora: date.getHours(),
         temperatura: forecast.main.temp,
@@ -131,10 +131,10 @@ function groupForecastsByDay(forecastList: any[]) {
         umidade: forecast.main.humidity,
         pressao: forecast.main.pressure
       });
-         }
-   });
+    }
+  });
   
-  // convertendo para array e ordenando por data
+  // Converter para array e ordenar por data
   return Object.values(dailyForecasts).sort((a: any, b: any) => 
     new Date(a.data).getTime() - new Date(b.data).getTime()
   );
