@@ -5,7 +5,7 @@ import axios from 'axios';
 jest.mock('axios');
 const mockedAxios = axios as any;
 
-// mock variáveis de ambiente
+// mock environment variables
 const originalEnv = process.env;
 beforeEach(() => {
   process.env = { ...originalEnv, OPENWEATHER_API_KEY: 'test-api-key' };
