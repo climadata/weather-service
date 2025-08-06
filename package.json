@@ -1,16 +1,17 @@
 {
   "name": "weather-service",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "main": "index.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node src/index.ts",
-    "dev": "nodemon src/index.ts",
-    "test": "jest"
+    "dev": "nodemon",
+    "build": "tsc",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.config.js"
   },
   "repository": {
     "type": "git",
@@ -32,8 +33,10 @@
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.2.0",
+    "@types/supertest": "^6.0.3",
     "jest": "^30.0.5",
     "nodemon": "^3.1.10",
+    "supertest": "^7.1.4",
     "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
