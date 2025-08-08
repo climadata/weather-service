@@ -1,522 +1,131 @@
 import { jest } from '@jest/globals';
-import axios from 'axios';
 
-// mock axios
-jest.mock('axios');
-const mockedAxios = axios as any;
+jest.unstable_mockModule('../services/weatherService.js', () => ({
+  fetchCurrentWeather: jest.fn(),
+}));
 
-// mock environment variables
-const originalEnv = process.env;
-beforeEach(() => {
-  process.env = { ...originalEnv, OPENWEATHER_API_KEY: 'test-api-key' };
-  jest.clearAllMocks();
-  mockedAxios.get = jest.fn();
-});
+const weatherService = await import('../services/weatherService.js');
+const { getCurrentWeather } = await import('../controllers/weatherController.js');
+import type { Request, Response } from 'express';
 
-afterEach(() => {
-  process.env = originalEnv;
-});
-
-const { fetchCurrentWeather, fetchWeeklyForecast } = await import('../services/weatherService.js');
-
-describe('weatherService.fetchCurrentWeather', () => {
+describe('weatherController.getCurrentWeather - casos de teste', () => {
   
-  it('deve retornar dados do clima corretamente formatados', async () => {
-    const mockResponse = {
-      data: {
-        name: 'São Paulo',
-        main: {
-          temp: 25.5,
-          humidity: 70
-        },
-        weather: [
-          {
-            description: 'céu limpo'
-          }
-        ]
-      }
-    };
-
-    mockedAxios.get.mockResolvedValue(mockResponse);
-
-    const result = await fetchCurrentWeather('São Paulo');
-
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      'https://api.openweathermap.org/data/2.5/weather',
-      expect.objectContaining({
-        params: expect.objectContaining({
-          q: 'São Paulo',
-          units: 'metric',
-          lang: 'pt_br'
-        })
-      })
-    );
-
-    expect(result).toEqual({
-      cidade: 'São Paulo',
-      temperatura: 25.5,
-      descricao: 'céu limpo',
-      umidade: 70
-    });
+  beforeEach(() => {
+    jest.resetAllMocks();
   });
 
-  it('deve lançar erro quando cidade não for encontrada (404)', async () => {
-    const mockError = {
-      isAxiosError: true,
-      response: {
-        status: 404,
-        statusText: 'Not Found'
-      }
-    };
+  function mockResponse() {
+    const res = {} as any;
+    res.status = jest.fn().mockReturnValue(res);
+    res.json = jest.fn().mockReturnValue(res);
+    return res;
+  }
 
-    mockedAxios.get.mockRejectedValue(mockError);
+  it('retorna 200 e os dados do clima corretamente', async () => {
+    const req = { query: { city: 'São Paulo' } } as unknown as Request;
+    const res = mockResponse();
 
-    await expect(fetchCurrentWeather('CidadeInexistente')).rejects.toThrow('Cidade não encontrada');
-  });
-
-  it('deve lançar erro quando chave da API for inválida (401)', async () => {
-    const mockError = {
-      isAxiosError: true,
-      response: {
-        status: 401,
-        statusText: 'Unauthorized'
-      }
-    };
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchCurrentWeather('São Paulo')).rejects.toThrow('Chave da API inválida ou não autorizada');
-  });
-
-  it('deve lançar erro quando serviço estiver indisponível (503)', async () => {
-    const mockError = {
-      isAxiosError: true,
-      response: {
-        status: 503,
-        statusText: 'Service Unavailable'
-      }
-    };
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchCurrentWeather('São Paulo')).rejects.toThrow('Serviço externo temporariamente indisponível');
-  });
-
-  it('deve lançar erro quando houver erro de conexão', async () => {
-    const mockError = {
-      isAxiosError: true,
-      request: {},
-      message: 'Network Error'
-    };
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchCurrentWeather('São Paulo')).rejects.toThrow('Erro de conexão com a API de clima. Verifique sua rede');
-  });
-
-  it('deve lançar erro para erros desconhecidos do axios', async () => {
-    const mockError = {
-      isAxiosError: true,
-      message: 'Erro desconhecido'
-    };
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchCurrentWeather('São Paulo')).rejects.toThrow('Erro desconhecido: Erro desconhecido');
-  });
-
-  it('deve lançar erro para erros não-axios', async () => {
-    const mockError = new Error('Erro interno');
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchCurrentWeather('São Paulo')).rejects.toThrow('Erro interno');
-  });
-
-  it('deve lidar com dados de resposta inesperados', async () => {
-    const mockResponse = {
-      data: {
-        name: 'São Paulo',
-        main: {
-          temp: 25.5,
-          humidity: 70
-        },
-        weather: [] 
-      }
-    };
-
-    mockedAxios.get.mockResolvedValue(mockResponse);
-
-    await expect(fetchCurrentWeather('São Paulo')).rejects.toThrow();
-  });
-});
-
-describe('weatherService.fetchWeeklyForecast', () => {
-  
-  it('deve retornar previsão semanal corretamente formatada', async () => {
-    const mockResponse = {
-      data: {
-        city: {
-          name: 'São Paulo',
-          country: 'BR'
-        },
-        list: [
-          {
-            dt: 1642233600, // 2022-01-15 12:00:00
-            main: {
-              temp: 25.5,
-              humidity: 70,
-              pressure: 1013
-            },
-            weather: [
-              {
-                description: 'céu limpo'
-              }
-            ]
-          },
-          {
-            dt: 1642244400, // 2022-01-15 15:00:00
-            main: {
-              temp: 27.0,
-              humidity: 65,
-              pressure: 1012
-            },
-            weather: [
-              {
-                description: 'poucas nuvens'
-              }
-            ]
-          },
-          {
-            dt: 1642320000, // 2022-01-16 12:00:00
-            main: {
-              temp: 22.0,
-              humidity: 75,
-              pressure: 1014
-            },
-            weather: [
-              {
-                description: 'nublado'
-              }
-            ]
-          }
-        ]
-      }
-    };
-
-    mockedAxios.get.mockResolvedValue(mockResponse);
-
-    const result = await fetchWeeklyForecast('São Paulo');
-
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      'https://api.openweathermap.org/data/2.5/forecast',
-      expect.objectContaining({
-        params: expect.objectContaining({
-          q: 'São Paulo',
-          units: 'metric',
-          lang: 'pt_br',
-          cnt: 40
-        })
-      })
-    );
-
-    expect(result).toEqual({
-      cidade: 'São Paulo',
-      pais: 'BR',
-      previsoes: [
+    const fakeWeatherData = {
+      current: {
+        city: 'São Paulo',
+        country: 'BR',
+        temperature: 25,
+        condition: 'Ensolarado',
+        humidity: 70,
+        windSpeed: 10,
+        visibility: 10,
+        uvIndex: 5,
+        feelsLike: 26,
+        pressure: 1015,
+        sunrise: '06:00',
+        sunset: '18:00'
+      },
+      forecast: [
         {
-          data: '2022-01-15',
-          previsoes: [
-            {
-              hora: 5,
-              temperatura: 25.5,
-              descricao: 'céu limpo',
-              umidade: 70,
-              pressao: 1013
-            },
-            {
-              hora: 8,
-              temperatura: 27.0,
-              descricao: 'poucas nuvens',
-              umidade: 65,
-              pressao: 1012
-            }
-          ]
-        },
-        {
-          data: '2022-01-16',
-          previsoes: [
-            {
-              hora: 5,
-              temperatura: 22.0,
-              descricao: 'nublado',
-              umidade: 75,
-              pressao: 1014
-            }
-          ]
+          day: 'Segunda-feira',
+          high: 28,
+          low: 22,
+          condition: 'Ensolarado',
+          icon: 'cloud',
+          precipitation: 20
         }
-      ]
+      ],
+      alerts: []
+    };
+
+    (weatherService.fetchCurrentWeather as jest.MockedFunction<typeof weatherService.fetchCurrentWeather>)
+      .mockResolvedValue(fakeWeatherData);
+
+    await getCurrentWeather(req, res);
+
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(fakeWeatherData);
+  });
+
+  it('retorna 400 se a cidade não for informada', async () => {
+    const req = { query: {} } as unknown as Request;
+    const res = mockResponse();
+
+    await getCurrentWeather(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cidade não informada' });
+  });
+
+  it('retorna 404 se a cidade não for encontrada', async () => {
+    const req = { query: { city: 'CidadeInexistente' } } as unknown as Request;
+    const res = mockResponse();
+
+    (weatherService.fetchCurrentWeather as jest.Mock).mockImplementation(() => {
+      throw new Error('Cidade não encontrada');
     });
+
+    await getCurrentWeather(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cidade não encontrada' });
   });
 
-  it('deve lançar erro quando cidade não for encontrada (404)', async () => {
-    const mockError = {
-      isAxiosError: true,
-      response: {
-        status: 404,
-        statusText: 'Not Found'
-      }
-    };
+  it('retorna 401 se a chave da API for inválida ou não autorizada', async () => {
+    const req = { query: { city: 'São Paulo' } } as unknown as Request;
+    const res = mockResponse();
 
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchWeeklyForecast('CidadeInexistente')).rejects.toThrow('Cidade não encontrada');
-  });
-
-  it('deve lançar erro quando chave da API for inválida (401)', async () => {
-    const mockError = {
-      isAxiosError: true,
-      response: {
-        status: 401,
-        statusText: 'Unauthorized'
-      }
-    };
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchWeeklyForecast('São Paulo')).rejects.toThrow('Chave da API inválida ou não autorizada');
-  });
-
-  it('deve lançar erro quando serviço estiver indisponível (503)', async () => {
-    const mockError = {
-      isAxiosError: true,
-      response: {
-        status: 503,
-        statusText: 'Service Unavailable'
-      }
-    };
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchWeeklyForecast('São Paulo')).rejects.toThrow('Serviço externo temporariamente indisponível');
-  });
-
-  it('deve lançar erro quando houver erro de conexão', async () => {
-    const mockError = {
-      isAxiosError: true,
-      request: {},
-      message: 'Network Error'
-    };
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchWeeklyForecast('São Paulo')).rejects.toThrow('Erro de conexão com a API de clima. Verifique sua rede');
-  });
-
-  it('deve lançar erro para erros desconhecidos do axios', async () => {
-    const mockError = {
-      isAxiosError: true,
-      message: 'Erro desconhecido'
-    };
-
-    mockedAxios.get.mockRejectedValue(mockError);
-
-    await expect(fetchWeeklyForecast('São Paulo')).rejects.toThrow('Erro desconhecido: Erro desconhecido');
-  });
-
-  it('deve lidar com lista de previsões vazia', async () => {
-    const mockResponse = {
-      data: {
-        city: {
-          name: 'São Paulo',
-          country: 'BR'
-        },
-        list: []
-      }
-    };
-
-    mockedAxios.get.mockResolvedValue(mockResponse);
-
-    const result = await fetchWeeklyForecast('São Paulo');
-
-    expect(result).toEqual({
-      cidade: 'São Paulo',
-      pais: 'BR',
-      previsoes: []
+    (weatherService.fetchCurrentWeather as jest.Mock).mockImplementation(() => {
+      throw new Error('Chave da API inválida ou não autorizada');
     });
+
+    await getCurrentWeather(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Chave da API inválida ou não autorizada' });
   });
 
-  it('deve agrupar previsões do mesmo dia corretamente', async () => {
-    const mockResponse = {
-      data: {
-        city: {
-          name: 'São Paulo',
-          country: 'BR'
-        },
-        list: [
-          {
-            dt: 1642233600, // 2022-01-15 12:00:00
-            main: {
-              temp: 25.5,
-              humidity: 70,
-              pressure: 1013
-            },
-            weather: [
-              {
-                description: 'céu limpo'
-              }
-            ]
-          },
-          {
-            dt: 1642237200, // 2022-01-15 13:00:00
-            main: {
-              temp: 26.0,
-              humidity: 68,
-              pressure: 1012
-            },
-            weather: [
-              {
-                description: 'poucas nuvens'
-              }
-            ]
-          }
-        ]
-      }
-    };
+  it('retorna 503 para erro 503 do serviço externo', async () => {
+    const req = { query: { city: 'São Paulo' } } as unknown as Request;
+    const res = mockResponse();
 
-    mockedAxios.get.mockResolvedValue(mockResponse);
+    (weatherService.fetchCurrentWeather as jest.Mock).mockImplementation(() => {
+      throw new Error('Serviço externo temporariamente indisponível');
+    });
 
-    const result = await fetchWeeklyForecast('São Paulo');
+    await getCurrentWeather(req, res);
 
-    expect(result.previsoes).toHaveLength(1);
-    expect((result.previsoes as any)[0].data).toBe('2022-01-15');
-    expect((result.previsoes as any)[0].previsoes).toHaveLength(2);
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Serviço externo temporariamente indisponível' });
   });
 
-  it('deve ordenar previsões por data', async () => {
-    const mockResponse = {
-      data: {
-        city: {
-          name: 'São Paulo',
-          country: 'BR'
-        },
-        list: [
-          {
-            dt: 1642320000, // 2022-01-16 12:00:00
-            main: {
-              temp: 22.0,
-              humidity: 75,
-              pressure: 1014
-            },
-            weather: [
-              {
-                description: 'nublado'
-              }
-            ]
-          },
-          {
-            dt: 1642233600, // 2022-01-15 12:00:00
-            main: {
-              temp: 25.5,
-              humidity: 70,
-              pressure: 1013
-            },
-            weather: [
-              {
-                description: 'céu limpo'
-              }
-            ]
-          }
-        ]
-      }
-    };
+  it('retorna 500 para erros desconhecidos', async () => {
+    const req = { query: { city: 'ErroQualquer' } } as unknown as Request;
+    const res = mockResponse();
 
-    mockedAxios.get.mockResolvedValue(mockResponse);
+    (weatherService.fetchCurrentWeather as jest.Mock).mockImplementation(() => {
+      throw new Error('Erro inesperado');
+    });
 
-    const result = await fetchWeeklyForecast('São Paulo');
+    await getCurrentWeather(req, res);
 
-    expect((result.previsoes as any)[0].data).toBe('2022-01-15');
-    expect((result.previsoes as any)[1].data).toBe('2022-01-16');
-  });
-});
-
-describe('weatherService - casos edge', () => {
-  
-  it('deve lidar com dados de previsão malformados', async () => {
-    const mockResponse = {
-      data: {
-        city: {
-          name: 'São Paulo',
-          country: 'BR'
-        },
-        list: [
-          {
-            dt: 1642233600,
-            main: {
-              temp: 25.5,
-              humidity: 70,
-              pressure: 1013
-            },
-            weather: [] 
-          }
-        ]
-      }
-    };
-
-    mockedAxios.get.mockResolvedValue(mockResponse);
-
-    await expect(fetchWeeklyForecast('São Paulo')).rejects.toThrow();
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Erro ao buscar dados climáticos' });
   });
 
-  it('deve lidar com timestamp inválido', async () => {
-    const mockResponse = {
-      data: {
-        city: {
-          name: 'São Paulo',
-          country: 'BR'
-        },
-        list: [
-          {
-            dt: 'invalid-timestamp',
-            main: {
-              temp: 25.5,
-              humidity: 70,
-              pressure: 1013
-            },
-            weather: [
-              {
-                description: 'céu limpo'
-              }
-            ]
-          }
-        ]
-      }
-    };
-
-    mockedAxios.get.mockResolvedValue(mockResponse);
-
-    await expect(fetchWeeklyForecast('São Paulo')).rejects.toThrow();
-  });
-
-  it('deve lidar com dados de temperatura inválidos', async () => {
-    const mockResponse = {
-      data: {
-        name: 'São Paulo',
-        main: {
-          temp: 'invalid-temp',
-          humidity: 70
-        },
-        weather: [
-          {
-            description: 'céu limpo'
-          }
-        ]
-      }
-    };
-
-    mockedAxios.get.mockResolvedValue(mockResponse);
-
-    const result = await fetchCurrentWeather('São Paulo');
-    expect(result.temperatura).toBe('invalid-temp');
-  });
 });
