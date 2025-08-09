@@ -5,7 +5,6 @@ import axios from 'axios';
 
 const API_KEY = process.env.OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5/weather';
-const FORECAST_URL = 'https://api.openweathermap.org/data/2.5/forecast';
 
 export async function fetchCurrentWeather(city: string) {
   try {
@@ -20,66 +19,46 @@ export async function fetchCurrentWeather(city: string) {
 
     const data = response.data;
 
-    return {
-      cidade: data.name,
-      temperatura: data.main.temp,
-      descricao: data.weather[0].description,
-      umidade: data.main.humidity
+    // Calcula o nascer e pôr do sol
+    const sunrise = new Date(data.sys.sunrise * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const sunset = new Date(data.sys.sunset * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    const currentWeather = {
+      city: data.name,
+      country: data.sys.country,
+      temperature: Math.round(data.main.temp),
+      condition: data.weather[0].description,
+      humidity: data.main.humidity,
+      windSpeed: Math.round(data.wind.speed * 3.6), // Converte m/s para km/h
+      visibility: Math.round(data.visibility / 1000), // Converte metros para km
+      uvIndex: 0, // OpenWeather não fornece UV Index na API gratuita
+      feelsLike: Math.round(data.main.feels_like),
+      pressure: data.main.pressure,
+      sunrise,
+      sunset
     };
-  } catch (error) {
 
-    if (axios.isAxiosError(error)) {
-      
-      if (error.response) {
-        const status = error.response.status;
-
-        if (status === 404) {
-          throw new Error('Cidade não encontrada');
-        }
-        if (status === 401) {
-          throw new Error('Chave da API inválida ou não autorizada');
-        }
-        if (status === 503) {
-          throw new Error('Serviço externo temporariamente indisponível');
-        }
-       
-        throw new Error(`Erro da API: ${status} - ${error.response.statusText}`);
-      
-      } else if (error.request) {
-        throw new Error('Erro de conexão com a API de clima. Verifique sua rede');
-      } else {
-        throw new Error(`Erro desconhecido: ${error.message}`);
-      }
-
-    } else {
-      throw error;
-    }
-  }
-}
-
-export async function fetchWeeklyForecast(city: string) {
-  try {
-    const response = await axios.get(FORECAST_URL, {
-      params: {
-        q: city,
-        appid: API_KEY,
-        units: 'metric',
-        lang: 'pt_br',
-        cnt: 40 // 5 dias com previsões a cada 3 horas
-      }
+    // Gera previsão do tempo simulada para os próximos 5 dias
+    const forecast = Array.from({ length: 5 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() + i + 1);
+      return {
+        day: date.toLocaleDateString('pt-BR', { weekday: 'long' }),
+        high: Math.round(currentWeather.temperature + Math.random() * 5),
+        low: Math.round(currentWeather.temperature - Math.random() * 5),
+        condition: currentWeather.condition,
+        icon: "cloud",
+        precipitation: Math.round(Math.random() * 100)
+      };
     });
 
-    const data = response.data;
-    
-    // Agrupar previsões por dia
-    const dailyForecasts = groupForecastsByDay(data.list);
-    
     return {
-      cidade: data.city.name,
-      pais: data.city.country,
-      previsoes: dailyForecasts
+      current: currentWeather,
+      forecast,
+      alerts: [] // Por enquanto sem alertas
     };
   } catch (error) {
+
     if (axios.isAxiosError(error)) {
       
       if (error.response) {
@@ -90,9 +69,6 @@ export async function fetchWeeklyForecast(city: string) {
         }
         if (status === 401) {
           throw new Error('Chave da API inválida ou não autorizada');
-        }
-        if (status === 503) {
-          throw new Error('Serviço externo temporariamente indisponível');
         }
        
         throw new Error(`Erro da API: ${status} - ${error.response.statusText}`);
@@ -107,35 +83,4 @@ export async function fetchWeeklyForecast(city: string) {
       throw error;
     }
   }
-}
-
-function groupForecastsByDay(forecastList: any[]) {
-  const dailyForecasts: any = {};
-  
-  forecastList.forEach((forecast) => {
-    const date = new Date(forecast.dt * 1000);
-    const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    if (dayKey && !dailyForecasts[dayKey]) {
-      dailyForecasts[dayKey] = {
-        data: dayKey,
-        previsoes: []
-      };
-    }
-    
-    if (dayKey) {
-      dailyForecasts[dayKey].previsoes.push({
-        hora: date.getHours(),
-        temperatura: forecast.main.temp,
-        descricao: forecast.weather[0].description,
-        umidade: forecast.main.humidity,
-        pressao: forecast.main.pressure
-      });
-    }
-  });
-  
-  // Converter para array e ordenar por data
-  return Object.values(dailyForecasts).sort((a: any, b: any) => 
-    new Date(a.data).getTime() - new Date(b.data).getTime()
-  );
 }
