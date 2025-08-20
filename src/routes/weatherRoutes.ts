@@ -3,9 +3,7 @@ import { getCurrentWeather } from '../controllers/weatherController.js';
 
 const router = express.Router();
 
-// Rota para compatibilidade com o API Gateway
-router.get('/city/:city', getCurrentWeather);
-// Rota original
-router.get('/current', getCurrentWeather);
+router.get('/current/:city', getCurrentWeather);
+//router.get('/weekly/:city', getWeeklyForecast);
 
 export default router;
