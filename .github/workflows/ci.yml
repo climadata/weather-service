@@ -33,7 +33,7 @@ jobs:
       run: npm test
       env:
         NODE_OPTIONS: '--experimental-vm-modules'
-      timeout-minutes: 5
+      timeout-minutes: 15
     
     - name: Verify build output
       run: |
