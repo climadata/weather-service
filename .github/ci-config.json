@@ -1,0 +1,33 @@
+{
+  "name": "Weather Service Backend CI",
+  "version": "1.0.0",
+  "description": "Configuration for the Weather Service Backend CI pipeline",
+  "triggers": {
+    "push": ["main", "develop"],
+    "pull_request": ["main", "develop"]
+  },
+  "environment": {
+    "os": "ubuntu-latest",
+    "node_version": "18.x",
+    "cache": "npm"
+  },
+  "steps": [
+    "checkout",
+    "setup_node",
+    "install_dependencies",
+    "type_checking",
+    "build",
+    "test",
+    "verify_build"
+  ],
+  "scripts": {
+    "install": "npm ci",
+    "type_check": "npx tsc --noEmit",
+    "build": "npm run build",
+    "test": "npm test"
+  },
+  "artifacts": {
+    "build_output": "dist/",
+    "retention_days": 7
+  }
+}
