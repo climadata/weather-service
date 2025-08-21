@@ -16,7 +16,7 @@ router.get('/health', (req, res) => {
 router.get('/current/:city', getCurrentWeather);
 
 // Rota adicional para compatibilidade com o API Gateway da branch 'feat/CI'.
-router.get('/city/:city', getCurrentWeather);
+// [REMOVIDO] Rota adicional para compatibilidade com o API Gateway da branch 'feat/CI'. Use apenas '/current/:city'.
 
 // Rota comentada da branch 'develop', mantida para referência futura.
 //router.get('/weekly/:city', getWeeklyForecast);
