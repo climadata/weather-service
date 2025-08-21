@@ -22,7 +22,7 @@ describe('weatherController.getCurrentWeather - casos de teste', () => {
   }
 
   it('retorna 200 e os dados do clima corretamente', async () => {
-    const req = { query: { city: 'São Paulo' } } as unknown as Request;
+    const req = { params: {}, query: { city: 'São Paulo' } } as unknown as Request;
     const res = mockResponse();
 
     const fakeWeatherData = {
@@ -63,7 +63,7 @@ describe('weatherController.getCurrentWeather - casos de teste', () => {
   });
 
   it('retorna 400 se a cidade não for informada', async () => {
-    const req = { query: {} } as unknown as Request;
+    const req = { params: {}, query: {} } as unknown as Request;
     const res = mockResponse();
 
     await getCurrentWeather(req, res);
@@ -73,7 +73,7 @@ describe('weatherController.getCurrentWeather - casos de teste', () => {
   });
 
   it('retorna 404 se a cidade não for encontrada', async () => {
-    const req = { query: { city: 'CidadeInexistente' } } as unknown as Request;
+    const req = { params: {}, query: { city: 'CidadeInexistente' } } as unknown as Request;
     const res = mockResponse();
 
     (weatherService.fetchCurrentWeather as jest.Mock).mockImplementation(() => {
@@ -87,7 +87,7 @@ describe('weatherController.getCurrentWeather - casos de teste', () => {
   });
 
   it('retorna 401 se a chave da API for inválida ou não autorizada', async () => {
-    const req = { query: { city: 'São Paulo' } } as unknown as Request;
+    const req = { params: {}, query: { city: 'São Paulo' } } as unknown as Request;
     const res = mockResponse();
 
     (weatherService.fetchCurrentWeather as jest.Mock).mockImplementation(() => {
@@ -101,7 +101,7 @@ describe('weatherController.getCurrentWeather - casos de teste', () => {
   });
 
   it('retorna 503 para erro 503 do serviço externo', async () => {
-    const req = { query: { city: 'São Paulo' } } as unknown as Request;
+    const req = { params: {}, query: { city: 'São Paulo' } } as unknown as Request;
     const res = mockResponse();
 
     (weatherService.fetchCurrentWeather as jest.Mock).mockImplementation(() => {
@@ -115,7 +115,7 @@ describe('weatherController.getCurrentWeather - casos de teste', () => {
   });
 
   it('retorna 500 para erros desconhecidos', async () => {
-    const req = { query: { city: 'ErroQualquer' } } as unknown as Request;
+    const req = { params: {}, query: { city: 'ErroQualquer' } } as unknown as Request;
     const res = mockResponse();
 
     (weatherService.fetchCurrentWeather as jest.Mock).mockImplementation(() => {

@@ -1,0 +1,50 @@
+name: CI - Weather Service Backend
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js 18.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Type checking
+      run: npx tsc --noEmit
+    
+    - name: Build TypeScript
+      run: npm run build
+    
+    - name: Run tests
+      run: npm test
+      env:
+        NODE_OPTIONS: '--experimental-vm-modules'
+      timeout-minutes: 15
+    
+    - name: Verify build output
+      run: |
+        if [ ! -d "dist" ]; then
+          echo "Build output directory 'dist' not found"
+          exit 1
+        fi
+        
+        if [ ! -f "dist/index.js" ]; then
+          echo "Build output file 'dist/index.js' not found"
+          exit 1
+        fi
+        
+        echo "Build verification passed"
