@@ -1,0 +1,24 @@
+# Dependências locais
+node_modules
+npm-debug.log
+yarn.lock
+pnpm-lock.yaml
+
+# Git
+.git
+.gitignore
+
+# Sistema / IDE
+.DS_Store
+.vscode
+.idea
+
+# Logs
+*.log
+logs
+*.tmp
+
+# Build local (o Docker já gera dentro da imagem)
+dist
+.next
+out
