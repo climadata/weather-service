@@ -38,6 +38,8 @@ jobs:
             type=sha,format=short,prefix=sha-
             type=ref,event=branch
             type=semver,pattern={{version}}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/develop' }}
+
 
       # ---- PR: build rápido, sem push, carregando no daemon (sem warning) ----
       - name: Build (PR)
